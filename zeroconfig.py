@@ -10,10 +10,9 @@ _TYPE_SRV = "SRV"
 class DNSEntry(object):
     """DNS entry"""
 
-    def __init__(self, name, clazz, type):
+    def __init__(self, name, type):
         self.key = name.lower()
         self.name = name
-        self.clazz = clazz
         self.type = type
 
     def __eq__(self, other):
@@ -24,8 +23,6 @@ class DNSEntry(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def getClass(self):
-        return self.clazz
 
     def getType(self):
         return self.type
@@ -34,19 +31,11 @@ class DNSEntry(object):
 class DNSService(DNSEntry):
     """DNS service record"""
 
-    def __init__(self, name, protocol, ttl, clazz, type, priority, weight, port, target):
-        DNSEntry.__init__(self, name, clazz, type)
+    def __init__(self, name, protocol, type, target):
+        DNSEntry.__init__(self, name, type)
         self.protocol = protocol
-        self.ttl = ttl
-        self.priority = priority
-        self.weight = weight
-        self.port = port
         self.target = target
 
-    def __eq__(self, other):
-        if isinstance(other, DNSService):
-            return self.priority == other.priority and self.weight == other.weight and self.port == other.port and self.target == other.target and DNSEntry.__eq__(self, other)
-        return 0
 
 
 class DNSCache(object):
@@ -76,8 +65,8 @@ class DNSCache(object):
         except:
             return None
 
-    def getByDetails(self, name, type, clazz):
-        entry = DNSEntry(name, type, clazz)
+    def getByDetails(self, name, type):
+        entry = DNSEntry(name, type)
         return self.get(entry)
 
     def entriesWithName(self, name):
