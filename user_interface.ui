@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>793</width>
+    <width>880</width>
     <height>486</height>
    </rect>
   </property>
@@ -19,8 +19,8 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>791</width>
-      <height>451</height>
+      <width>882</width>
+      <height>452</height>
      </rect>
     </property>
     <property name="font">
@@ -35,7 +35,7 @@
      <attribute name="title">
       <string>Responder</string>
      </attribute>
-     <widget class="QPushButton" name="button_new">
+     <widget class="QPushButton" name="add_button">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -68,7 +68,7 @@
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;Name&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
-     <widget class="QTextEdit" name="textEdit_2">
+     <widget class="QTextEdit" name="name_text">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -116,7 +116,7 @@ p, li { white-space: pre-wrap; }
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;Protocol&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
-     <widget class="QComboBox" name="comboBox">
+     <widget class="QComboBox" name="protocol_comboBox">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -156,7 +156,7 @@ p, li { white-space: pre-wrap; }
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;Type&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
-     <widget class="QComboBox" name="comboBox_2">
+     <widget class="QComboBox" name="type_comboBox">
       <property name="geometry">
        <rect>
         <x>190</x>
@@ -183,20 +183,7 @@ p, li { white-space: pre-wrap; }
        </property>
       </item>
      </widget>
-     <widget class="QLabel" name="label_5">
-      <property name="geometry">
-       <rect>
-        <x>210</x>
-        <y>50</y>
-        <width>81</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;.local&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-     </widget>
-     <widget class="QTextEdit" name="textEdit_4">
+     <widget class="QTextEdit" name="target_text">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -218,7 +205,7 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
-     <widget class="QTextEdit" name="textEdit_3">
+     <widget class="QTextEdit" name="service_text">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -253,13 +240,13 @@ p, li { white-space: pre-wrap; }
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;Target&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
-     <widget class="QListWidget" name="listWidget_2">
+     <widget class="QListWidget" name="responder_list">
       <property name="geometry">
        <rect>
         <x>320</x>
         <y>50</y>
-        <width>451</width>
-        <height>311</height>
+        <width>542</width>
+        <height>312</height>
        </rect>
       </property>
       <property name="font">
@@ -271,11 +258,11 @@ p, li { white-space: pre-wrap; }
       </property>
       <item>
        <property name="text">
-        <string>nume.__serviciu._tcp.local SRV target.com</string>
+        <string>My name._music._udp.local 3600 IN SRV 0 0 5353 music.example.com</string>
        </property>
       </item>
      </widget>
-     <widget class="QPushButton" name="button_new_2">
+     <widget class="QPushButton" name="delete_button">
       <property name="geometry">
        <rect>
         <x>320</x>
@@ -300,7 +287,7 @@ p, li { white-space: pre-wrap; }
      <attribute name="title">
       <string>Resolver</string>
      </attribute>
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="showAll_button">
       <property name="geometry">
        <rect>
         <x>10</x>
@@ -320,13 +307,13 @@ p, li { white-space: pre-wrap; }
        <string>Show All Services</string>
       </property>
      </widget>
-     <widget class="QListWidget" name="listWidget">
+     <widget class="QListWidget" name="resolver_list">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>90</y>
-        <width>431</width>
-        <height>251</height>
+        <width>542</width>
+        <height>248</height>
        </rect>
       </property>
       <property name="font">
@@ -335,7 +322,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
      </widget>
-     <widget class="QPushButton" name="pushButton_2">
+     <widget class="QPushButton" name="filter_button">
       <property name="geometry">
        <rect>
         <x>250</x>
@@ -355,7 +342,7 @@ p, li { white-space: pre-wrap; }
        <string>Filter By Service</string>
       </property>
      </widget>
-     <widget class="QTextEdit" name="textEdit">
+     <widget class="QTextEdit" name="filter_text">
       <property name="geometry">
        <rect>
         <x>10</x>
@@ -378,7 +365,7 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>793</width>
+     <width>880</width>
      <height>21</height>
     </rect>
    </property>
