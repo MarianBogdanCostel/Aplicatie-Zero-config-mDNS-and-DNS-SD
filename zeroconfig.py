@@ -1,3 +1,4 @@
+import random
 import struct
 import socket
 import threading
@@ -37,6 +38,11 @@ class DNSEntry(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __repr__(self):
+        result = self.name + '.' + self.service + '.' + self.protocol + '.local' + " "
+        result += str(self.ttl) + " " + self.clazz + " " + self.type + " 0 0 " + str(self.port) + " " + self.target
+        return result
+
 
 class DNSText(DNSEntry):
     def __init__(self, name, protocol, ttl, clazz, type, priority, weight, port, target, text):
@@ -63,15 +69,23 @@ class DNSService(DNSEntry):
 class DNSCache(object):
     def __init__(self):
         self.cache = []
+        self.ip_dictionary = {}
+        self.host_ip = socket.gethostbyname(socket.gethostname())
 
     def add(self, entry):
         self.cache.append(entry)
+        array = self.host_ip.split(".")
+        addr = array[0] + "." + array[1] + "." + array[2] + "." + str(random.randint(2, 254))
+        self.ip_dictionary[entry.target] = addr
 
     def remove(self, entry):
         self.cache.remove(entry)
 
     def entries(self):
         return self.cache
+
+    def getIp(self, entry):
+        return self.ip_dictionary[entry.target]
 
 
 class DNSQuery(DNSEntry):
@@ -111,9 +125,9 @@ class Listener(object):
 def packData(entry: DNSService):
     """Packing data"""
     print("Data packed: ")
-    print(entry.name + '._' + entry.service + '._' + entry.protocol + '.local')
+    print(entry.name + '.' + entry.service + '.' + entry.protocol + '.local')
     print(str(entry.ttl) + " " + entry.clazz + " " + entry.type + " 0 0 " + str(entry.port) + " " + entry.target)
-    b_name = bytes(entry.name + '._' + entry.service + '._' + entry.protocol + '.local', 'utf-8')
+    b_name = bytes(entry.name + '.' + entry.service + '.' + entry.protocol + '.local', 'utf-8')
     b_class = bytes(entry.clazz, 'utf-8')
     b_type = bytes(entry.type, 'utf-8')
     b_target = bytes(entry.target, 'utf-8')
@@ -135,26 +149,33 @@ def unpackData(data, name_length, target_length):
     print(name.decode())
     print(str(ttl) + " " + clazz.decode() + " " + type.decode() + " " + str(priority) + " " + str(weight) + " " +
           str(port) + " " + target.decode())
-    entry = DNSService("My name", "music", "udp", DNS_TTL, CLASS_IN, "SRV", 0, 0, MDNS_PORT, "music.example.com")
+
+    array = name.decode().split(".")
+    name = array[0]
+    service = array[1]
+    protocol = array[2]
+    clazz = clazz.decode()
+    type = type.decode()
+    target = target.decode()
+    entry = DNSService(name, service, protocol, ttl, clazz, type, priority, weight, port, target)
     return entry
 
 
 
 class Zeroconfig(object):
-    def __init__(self):
-        pass
+    def __init__(self, dns_cache):
+        self.dns_cache = dns_cache
 
     def registerService(self, entry):
         if isinstance(entry, DNSText):
             pass
         if isinstance(entry, DNSService):
             data, name_length, target_length = packData(entry)
-            if entry.protocol == "udp":
+            if entry.protocol == "_udp":
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 s.bind(('', 0))
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-                my_ip = socket.gethostbyname(socket.gethostname())
 
                 magic_key = bytes("fnf327h", 'utf-8')
                 data_length = struct.pack("!7sHH", magic_key, name_length, target_length)
@@ -162,7 +183,7 @@ class Zeroconfig(object):
                 s.sendto(data, ('<broadcast>', MDNS_PORT))
                 print("\nsent service announcement")
 
-            elif entry.protocol == "tcp":
+            elif entry.protocol == "_tcp":
                 pass
             else:
                 raise UnknownProtocolException
@@ -171,7 +192,8 @@ class Zeroconfig(object):
         if isinstance(entry, DNSText):
             pass
         if isinstance(entry, DNSService):
-            pass
+            print(entry)
+            self.dns_cache.remove(entry)
 
     def checkService(self, service):
         pass
