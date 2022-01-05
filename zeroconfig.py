@@ -1,100 +1,8 @@
-import random
+from DNSclasses import *
+from DNScache import *
 import struct
 import socket
 import threading
-
-MDNS_ADDR = '127.0.0.1'
-MDNS_PORT = 5353
-DNS_TTL = 3600
-
-CLASS_IN = "IN"
-
-TYPE_TXT = "TXT"
-TYPE_SRV = "SRV"
-
-
-class UnknownProtocolException(Exception):
-    pass
-
-
-class DNSEntry(object):
-    def __init__(self, name, protocol, ttl, clazz, type, priority, weight, port, target):
-        self.name = name
-        self.protocol = protocol
-        self.ttl = ttl
-        self.clazz = clazz
-        self.type = type
-        self.priority = priority
-        self.weight = weight
-        self.port = port
-        self.target = target
-
-    def __eq__(self, other):
-        if isinstance(other, DNSEntry):
-            #return self.name == other.name and self.type == other.type and self.protocol == other.protocol
-            pass
-        return 0
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __repr__(self):
-        result = self.name + '.' + self.service + '.' + self.protocol + '.local' + " "
-        result += str(self.ttl) + " " + self.clazz + " " + self.type + " 0 0 " + str(self.port) + " " + self.target
-        return result
-
-
-class DNSText(DNSEntry):
-    def __init__(self, name, protocol, ttl, clazz, type, priority, weight, port, target, text):
-        DNSEntry.__init__(self, name, protocol, ttl, clazz, type, priority, weight, port, target)
-        self.text = text
-
-    def __eq__(self, other):
-        if isinstance(other, DNSText):
-            return self.text == other.text
-        return 0
-
-
-class DNSService(DNSEntry):
-    def __init__(self, name, service, protocol, ttl, clazz, type, priority, weight, port, target):
-        DNSEntry.__init__(self, name, protocol, ttl, clazz, type, priority, weight, port, target)
-        self.service = service
-
-    def __eq__(self, other):
-        if isinstance(other, DNSService):
-            return self.service == other.service
-        return 0
-
-
-class DNSCache(object):
-    def __init__(self):
-        self.cache = []
-        self.ip_dictionary = {}
-        self.host_ip = socket.gethostbyname(socket.gethostname())
-
-    def add(self, entry):
-        self.cache.append(entry)
-        array = self.host_ip.split(".")
-        addr = array[0] + "." + array[1] + "." + array[2] + "." + str(random.randint(2, 254))
-        self.ip_dictionary[entry.target] = addr
-
-    def remove(self, entry):
-        self.cache.remove(entry)
-
-    def entries(self):
-        return self.cache
-
-    def getIp(self, entry):
-        return self.ip_dictionary[entry.target]
-
-
-class DNSQuery(DNSEntry):
-
-    def __init__(self, name, type, protocol, target):
-        pass
-
-    def answeredBy(self, record):
-        return self.type == record.type and self.name == record.name
 
 
 class Listener(object):
@@ -161,7 +69,6 @@ def unpackData(data, name_length, target_length):
     return entry
 
 
-
 class Zeroconfig(object):
     def __init__(self, dns_cache):
         self.dns_cache = dns_cache
@@ -185,8 +92,6 @@ class Zeroconfig(object):
 
             elif entry.protocol == "_tcp":
                 pass
-            else:
-                raise UnknownProtocolException
 
     def unregisterService(self, entry):
         if isinstance(entry, DNSText):
