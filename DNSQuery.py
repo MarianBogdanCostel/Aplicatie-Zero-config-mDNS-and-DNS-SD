@@ -1,0 +1,127 @@
+import DNSclasses
+import struct
+
+
+class DNSQuery:
+    def __init__(self, flags, multicast=True):
+        self.finished = False
+        self.id = 0
+        self.multicast = multicast
+        self.flags = flags
+        self.names = {}
+        self.data = []
+        self.size = 12
+
+        self.questions = []
+        self.answers = []
+        self.authorities = []
+        self.additionals = []
+
+    def add_question(self, record):
+        self.questions.append(record)
+
+    def add_answer_at_time(self, record, now):
+        if record is not None:
+            if now == 0 or not record.is_expired(now):
+                self.answers.append((record, now))
+
+    def add_answer(self, msg, record):
+        if not record.suppressed(msg):
+            self.add_answer_at_time(record, 0)
+
+    def add_authoritative_answer(self, record):
+        self.authorities.append(record)
+
+    def add_additional_answer(self, record):
+        self.additionals.append(record)
+
+    def pack(self, format_, value):
+        self.data.append(struct.pack(format_, value))
+        self.size += struct.calcsize(format_)
+
+    def write_byte(self, value):
+        self.pack(b'!c', bytes(value))
+
+    def insert_short(self, index, value):
+        self.data.insert(index, struct.pack(b'!H', value))
+        self.size += 2
+
+    def write_short(self, value):
+        self.pack(b'!H', value)
+
+    def write_int(self, value):
+        self.pack(b'!I', int(value))
+
+    def write_string(self, value):
+        assert isinstance(value, bytes)
+        self.data.append(value)
+        self.size += len(value)
+
+    def write_utf8(self, string):
+        utf_string = string.encode('utf-8')
+        length = len(utf_string)
+        if length > 64:
+            raise Exception("String prea mare!")
+        self.write_byte(length)
+        self.write_string(utf_string)
+
+    def write_domain_name(self, name):
+        if name in self.names:
+            index = self.names[name]
+            self.write_byte((index >> 8) | 0xC0)
+            self.write_byte(index & 0xFF)
+        else:
+            self.names[name] = self.size
+            parts = name.split('.')
+            if parts[-1] == '':
+                parts = parts[:-1]
+            for part in parts:
+                self.write_utf8(part)
+            self.write_byte(0)
+
+    def write_question(self, question):
+        self.write_domain_name(question.name)
+        self.write_short(question.type_)
+        self.write_short(question.class_)
+
+    def write_record(self, record, now):
+        self.write_domain_name(record.name)
+        self.write_short(record.type_)
+        if record.unique and self.multicast:
+            self.write_short(record.class_ | DNSclasses.CLASS_UNIQUE)
+        else:
+            self.write_short(record.class_)
+        if now == 0:
+            self.write_int(record.ttl)
+        else:
+            self.write_int(record.get_remaining_TTL(now))
+        index = len(self.data)
+        self.size += 2
+        record.write(self)
+        self.size -= 2
+        length = len(b''.join(self.data[index:]))
+        self.insert_short(index, length)
+
+    def packet(self):
+        if not self.finished:
+            self.finished = True
+            for question in self.questions:
+                self.write_question(question)
+            for answer, time_ in self.answers:
+                self.write_record(answer, time_)
+
+            for authority in self.authorities:
+                self.write_record(authority, 0)
+            for additional in self.additionals:
+                self.write_record(additional, 0)
+
+            self.insert_short(0, len(self.additionals))
+            self.insert_short(0, len(self.authorities))
+            self.insert_short(0, len(self.answers))
+            self.insert_short(0, len(self.questions))
+            self.insert_short(0, self.flags)
+            if self.multicast:
+                self.insert_short(0, 0)
+            else:
+                self.insert_short(0, self.id)
+        return b''.join(self.data)
