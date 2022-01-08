@@ -1,8 +1,15 @@
 import abc
 import time
 
+GLOBAL_DONE = False
+
+BROWSER_TIME = 500
+
 DNS_PORT = 53
 MDNS_PORT = 5353
+
+MDNS_ADDR = '224.0.0.251'
+MAX_MSG_ABSOLUTE = 8972
 DNS_TTL = 3600
 
 CLASS_IN = 1
@@ -10,6 +17,7 @@ CLASS_ANY = 255
 CLASS_MASK = 0x7FFF
 CLASS_UNIQUE = 0X8000
 
+TYPE_PTR = 12
 TYPE_TXT = 16
 TYPE_SRV = 33
 TYPE_ANY = 255
@@ -23,6 +31,7 @@ FLAGS_AA = 0x0400
 CLASSES = {CLASS_IN: "in",
            CLASS_ANY: "any"}
 TYPES = {TYPE_TXT: "txt",
+         TYPE_PTR: "ptr",
          TYPE_SRV: "srv",
          TYPE_ANY: "any"}
 

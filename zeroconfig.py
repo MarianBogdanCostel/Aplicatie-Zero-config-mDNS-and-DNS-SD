@@ -1,33 +1,51 @@
 from DNSclasses import *
 from DNScache import *
+from DNSclasses import *
+from DNSResponse import *
 import struct
 import socket
 import threading
 
 
-class Listener(object):
-    def __init__(self, dns_cache):
-        self.dns_cache = dns_cache
-        self.thread = threading.Thread(target=self.listening_thread)
+class Listener:
+    def __init__(self, zeroconf):
+        self.zeroconf = zeroconf
+        self.data = None
 
-    def startListening(self):
+    def handle_read(self, socket_):
         try:
-            self.thread.start()
-        except:
-            print("Eroare la pornirea thread-ului")
+            data, (addr, port) = socket_.recvfrom(MAX_MSG_ABSOLUTE)
+        except socket.error as err:
+            if err.errno == socket.EBADF:
+                return
+            else:
+                raise err
+        self.data = data
+        msg = DNSResponse(data)
+        if msg.is_query():
+            if port == MDNS_PORT:
+                self.zeroconf.handle_query(msg, MDNS_ADDR, MDNS_PORT)
+        else:
+            self.zeroconf.handle_response(msg)
 
-    def listening_thread(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind(('', MDNS_PORT))
 
-        while 1:
-            data, addr = s.recvfrom(1024)
-            magic_key, name_length, target_length = struct.unpack("!7sHH", data)
-            if magic_key.decode() == "fnf327h":
-                data, addr = s.recvfrom(1024)
-                entry = unpackData(data, name_length, target_length)
-                self.dns_cache.add(entry)
+class Reaper(threading.Thread):
+    def __init__(self, zeroconf):
+        super().__init__()
+        self.daemon = True
+        self.zeroconf = zeroconf
+        self.start()
+
+    def run(self):
+        while True:
+            self.zeroconf.wait(10 * 1000)
+            if GLOBAL_DONE:
+                return
+            now = time.time() * 1000
+            for record in self.zeroconf.cache.entries():
+                if record.is_expired(now):
+                    self.zeroconf.update_record(now, record)
+                    self.zeroconf.cache.remove(record)
 
 
 def packData(entry: DNSService):
