@@ -1,3 +1,5 @@
+from Browser import Browser
+from DNSQuery import DNSQuery
 from DNSclasses import *
 from DNScache import *
 from DNSclasses import *
@@ -83,40 +85,126 @@ def unpackData(data, name_length, target_length):
     clazz = clazz.decode()
     type = type.decode()
     target = target.decode()
-    entry = DNSService(name, service, protocol, ttl, clazz, type, priority, weight, port, target)
+    entry = DNSService(name, service, protocol, ttl, clazz, type, priority, weight)
     return entry
 
 
+def new_socket():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    ttl = struct.pack(b'B', 255)
+    loop = struct.pack(b'B', 1)
+    s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+    s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, loop)
+    s.bind(('', DNSclasses.MDNS_PORT))
+    return s
+
+
 class Zeroconfig(object):
-    def __init__(self, dns_cache):
-        self.dns_cache = dns_cache
+    def __init__(self):
+        DNSclasses.GLOBAL_DONE = False
+        self._listen_socket = new_socket()
 
-    def registerService(self, entry):
-        if isinstance(entry, DNSText):
-            pass
-        if isinstance(entry, DNSService):
-            data, name_length, target_length = packData(entry)
-            if entry.protocol == "_udp":
-                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                s.bind(('', 0))
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self._respond_sockets = []
 
-                magic_key = bytes("fnf327h", 'utf-8')
-                data_length = struct.pack("!7sHH", magic_key, name_length, target_length)
-                s.sendto(data_length, ('<broadcast>', MDNS_PORT))
-                s.sendto(data, ('<broadcast>', MDNS_PORT))
-                print("\nsent service announcement")
+        self.listeners = []
+        self.browsers = []
+        self.services = {}
+        self.servicetypes = {}
+        self.condition = threading.Condition()
 
-            elif entry.protocol == "_tcp":
-                pass
+        self.cache = DNSCache()
+        self.listener = Listener(self)
+        self.reaper = Reaper(self)
 
-    def unregisterService(self, entry):
-        if isinstance(entry, DNSText):
-            pass
-        if isinstance(entry, DNSService):
-            print(entry)
-            self.dns_cache.remove(entry)
+    def wait(self, timeout):
+        with self.condition:
+            self.condition.wait(timeout / 1000)
 
-    def checkService(self, service):
-        pass
+    def notify_all(self):
+        with self.condition:
+            self.condition.notify_all()
+
+    def remove_service_listener(self, listener):
+        for browser in self.browsers:
+            if browser.listener == listener:
+                browser.cancel()
+                del browser
+
+    def add_service_listener(self, type_, listener):
+        self.remove_service_listener(listener)
+        self.browsers.append(Browser(self, type_, listener))
+
+    def send(self, out_, addr=DNSclasses.MDNS_ADDR, port=DNSclasses.MDNS_PORT):
+        packet = out_.packet()
+        for socket_ in self._respond_sockets:
+            if DNSclasses.GLOBAL_DONE:
+                return
+            if addr is None:
+                real_addr = DNSclasses.MDNS_ADDR
+            else:
+                real_addr = addr
+            bytes_sent = socket_.sendto(packet, 0, (real_addr, port))
+            if bytes_sent != len(packet):
+                raise Exception('S-au trimis cu succes %d din %d octeti.' % (bytes_sent, len(packet)))
+
+    def check_service(self, info, allow_name_change=True):
+        next_instance_number = 2
+        instance_name = info.name[:-len(info.type_) - 1]
+        now = time.time() * 1000
+        next_time = now
+        j = 0
+        while j < 3:
+            for record in self.cache.entries_with_name(info.type_):
+                if record.type_ == DNSclasses.TYPE_PTR and not record.is_expired(now) and record.alias == info.name:
+
+                    if not allow_name_change:
+                        raise Exception("NonUniqueNameException")
+                    info.name = '%s-%s.%s' % (instance_name, next_instance_number, info.type_)
+                    next_instance_number += 1
+                    self.check_service(info)
+                    return
+
+            if now < next_time:
+                self.wait(next_time - now)
+                now = time.time() * 1000
+                continue
+
+            out = DNSQuery(DNSclasses.FLAGS_QR_QUERY | DNSclasses.FLAGS_AA)
+            self.debug = out
+            out.add_question(DNSQuestion(info.type_, DNSclasses.TYPE_PTR, DNSclasses.CLASS_IN))
+            out.add_authoritative_answer(DNSPointer(info.type_, DNSclasses.TYPE_PTR, DNSclasses.CLASS_IN,
+                                                    DNSclasses.DNS_TTL, info.name))
+            self.send(out)
+            j += 1
+            next_time += DNSclasses.CHECK_TIME
+
+    def register_service(self, info, ttl=DNSclasses.DNS_TTL):
+        self.check_service(info)
+        self.services[info.name.lower()] = info
+        if info.type_ in self.servicetypes:
+            self.servicetypes[info.type_] += 1
+        else:
+            self.servicetypes[info.type_] = 1
+        now = time.time() * 1000
+        next_time = now
+        j = 0
+        while j < 3:
+            if now < next_time:
+                self.wait(next_time - now)
+                now = time.time() * 1000
+                continue
+            out_ = DNSQuery(DNSclasses.FLAGS_QR_RESPONSE | DNSclasses.FLAGS_AA)
+            out_.add_answer_at_time(DNSPointer(info.type_, DNSclasses.TYPE_PTR, DNSclasses.CLASS_IN, ttl, info.name),
+                                    0)
+            out_.add_answer_at_time(
+                DNSService(info.name, DNSclasses.TYPE_SRV, DNSclasses.CLASS_IN, ttl, info.priority,
+                           info.weight, info.port, info.server), 0)
+            out_.add_answer_at_time(DNSText(info.name, DNSclasses.TYPE_TXT, DNSclasses.CLASS_IN, ttl, info.text), 0)
+            if info.address:
+                out_.add_answer_at_time(
+                    DNSAddress(info.server, DNSclasses.TYPE_A, DNSclasses.CLASS_IN, ttl, info.address), 0)
+
+            self.send(out_)
+            j += 1
+            next_time += DNSclasses.REGISTER_TIME
