@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>880</width>
-    <height>486</height>
+    <height>507</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,7 @@
       <x>0</x>
       <y>0</y>
       <width>882</width>
-      <height>452</height>
+      <height>491</height>
      </rect>
     </property>
     <property name="font">
@@ -40,7 +40,7 @@
        <rect>
         <x>20</x>
         <y>370</y>
-        <width>111</width>
+        <width>131</width>
         <height>31</height>
        </rect>
       </property>
@@ -52,7 +52,7 @@
        </font>
       </property>
       <property name="text">
-       <string>Add Entry</string>
+       <string>Add Service</string>
       </property>
      </widget>
      <widget class="QLabel" name="label">
@@ -73,7 +73,7 @@
        <rect>
         <x>20</x>
         <y>50</y>
-        <width>181</width>
+        <width>271</width>
         <height>41</height>
        </rect>
       </property>
@@ -121,7 +121,7 @@ p, li { white-space: pre-wrap; }
        <rect>
         <x>20</x>
         <y>240</y>
-        <width>101</width>
+        <width>81</width>
         <height>21</height>
        </rect>
       </property>
@@ -140,46 +140,6 @@ p, li { white-space: pre-wrap; }
       <item>
        <property name="text">
         <string>UDP</string>
-       </property>
-      </item>
-     </widget>
-     <widget class="QLabel" name="label_4">
-      <property name="geometry">
-       <rect>
-        <x>190</x>
-        <y>200</y>
-        <width>71</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;Type&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-     </widget>
-     <widget class="QComboBox" name="type_comboBox">
-      <property name="geometry">
-       <rect>
-        <x>190</x>
-        <y>240</y>
-        <width>101</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>14</pointsize>
-        <weight>50</weight>
-        <bold>false</bold>
-       </font>
-      </property>
-      <item>
-       <property name="text">
-        <string>SRV</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>TXT</string>
        </property>
       </item>
      </widget>
@@ -210,7 +170,7 @@ p, li { white-space: pre-wrap; }
        <rect>
         <x>20</x>
         <y>140</y>
-        <width>181</width>
+        <width>271</width>
         <height>41</height>
        </rect>
       </property>
@@ -243,9 +203,9 @@ p, li { white-space: pre-wrap; }
      <widget class="QListWidget" name="responder_list">
       <property name="geometry">
        <rect>
-        <x>320</x>
+        <x>311</x>
         <y>50</y>
-        <width>542</width>
+        <width>551</width>
         <height>312</height>
        </rect>
       </property>
@@ -256,18 +216,13 @@ p, li { white-space: pre-wrap; }
         <bold>false</bold>
        </font>
       </property>
-      <item>
-       <property name="text">
-        <string>My name._music._udp.local 3600 IN SRV 0 0 5353 music.example.com</string>
-       </property>
-      </item>
      </widget>
      <widget class="QPushButton" name="delete_button">
       <property name="geometry">
        <rect>
-        <x>320</x>
+        <x>720</x>
         <y>370</y>
-        <width>131</width>
+        <width>141</width>
         <height>31</height>
        </rect>
       </property>
@@ -282,6 +237,46 @@ p, li { white-space: pre-wrap; }
        <string>Delete Entry</string>
       </property>
      </widget>
+     <widget class="QPushButton" name="save_button">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>410</y>
+        <width>131</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Save</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="cancel_button">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>410</y>
+        <width>131</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Cancel</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="resolver_tab">
      <attribute name="title">
@@ -291,7 +286,7 @@ p, li { white-space: pre-wrap; }
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>350</y>
+        <y>20</y>
         <width>211</width>
         <height>41</height>
        </rect>
@@ -311,8 +306,8 @@ p, li { white-space: pre-wrap; }
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>90</y>
-        <width>542</width>
+        <y>80</y>
+        <width>851</width>
         <height>248</height>
        </rect>
       </property>
@@ -326,8 +321,8 @@ p, li { white-space: pre-wrap; }
       <property name="geometry">
        <rect>
         <x>250</x>
-        <y>20</y>
-        <width>191</width>
+        <y>350</y>
+        <width>181</width>
         <height>41</height>
        </rect>
       </property>
@@ -346,8 +341,8 @@ p, li { white-space: pre-wrap; }
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>20</y>
-        <width>151</width>
+        <y>350</y>
+        <width>231</width>
         <height>41</height>
        </rect>
       </property>
@@ -357,18 +352,79 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
      </widget>
+     <widget class="QTextEdit" name="eqp_name_text">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>410</y>
+        <width>421</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="get_ip_button">
+      <property name="geometry">
+       <rect>
+        <x>440</x>
+        <y>410</y>
+        <width>161</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Get IP Address</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_4">
+      <property name="geometry">
+       <rect>
+        <x>610</x>
+        <y>410</y>
+        <width>111</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;IP Address:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="ip_label">
+      <property name="geometry">
+       <rect>
+        <x>730</x>
+        <y>410</y>
+        <width>131</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
     </widget>
    </widget>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>880</width>
-     <height>21</height>
-    </rect>
-   </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

@@ -1,4 +1,5 @@
-import DNSclasses
+from six import int2byte
+import queryTypes
 import struct
 
 
@@ -40,10 +41,10 @@ class DNSQuery:
         self.size += struct.calcsize(format_)
 
     def write_byte(self, value):
-        self.pack(b'!c', bytes(value))
+        self.pack(b'!c', int2byte(value))  # char
 
     def insert_short(self, index, value):
-        self.data.insert(index, struct.pack(b'!H', value))
+        self.data.insert(index, struct.pack(b'!H', value))  # unsigned short
         self.size += 2
 
     def write_short(self, value):
@@ -61,7 +62,7 @@ class DNSQuery:
         utf_string = string.encode('utf-8')
         length = len(utf_string)
         if length > 64:
-            raise Exception("String prea mare!")
+            raise Exception("String too long!")
         self.write_byte(length)
         self.write_string(utf_string)
 
@@ -88,7 +89,7 @@ class DNSQuery:
         self.write_domain_name(record.name)
         self.write_short(record.type_)
         if record.unique and self.multicast:
-            self.write_short(record.class_ | DNSclasses.CLASS_UNIQUE)
+            self.write_short(record.class_ | queryTypes.CLASS_UNIQUE)
         else:
             self.write_short(record.class_)
         if now == 0:

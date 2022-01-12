@@ -1,17 +1,207 @@
+from ServiceTypes_find import *
+from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUi
-from PyQt5.QtWidgets import QMainWindow, QTableWidgetItem
 
 
-class MainWindow(QMainWindow):
+class Listener:
     def __init__(self):
-        super(MainWindow, self).__init__()
+        self.result = ""
+
+    def add_service(self, zeroconfig, type, name):
+        self.result += "Name:  %s    " % (name,)
+        service = zeroconfig.get_service_info(type, name)
+        if service:
+            self.result += ("Target:  %s    " % service.server)
+            self.result += ("IP:  %s\n" % (socket.inet_ntoa(service.address)))
+
+
+class Interface(QMainWindow):
+    def __init__(self):
+        super(Interface, self).__init__()
         loadUi("user_interface.ui", self)
 
-        self.add_button.setToolTip( "Name: numele echipamentului.\n" +
-                                    "Service: tipul serviciului.\n"
-                                    "Protocol: protocolul de transport pentru serviciul dorit (TCP sau UDP).\n" +
-                                    "Type: tipul intrării (SRV sau TXT).\n" +
-                                    "Target: numele de gazdă al dispozitivului ce pune la dispoziție acel serviciu.\n")
-        #self.button_new.clicked.connect(self._addRow)
-        #self.button_copy.clicked.connect(self._copyRow)
-        #self.button_delete.clicked.connect(self._deleteRow)
+        self.zeroconfig = None
+        self.serv_dict = {}
+
+        self.disable_controls()
+        self.add_button.clicked.connect(self.add_service)
+        self.save_button.clicked.connect(self.register_service)
+        self.cancel_button.clicked.connect(self.cancel)
+        self.delete_button.clicked.connect(self.unregister_service)
+        self.showAll_button.clicked.connect(self.show_all)
+        self.filter_button.clicked.connect(self.filter_by_service)
+        self.get_ip_button.clicked.connect(self.get_ip_address)
+
+    def disable_controls(self):
+        self.name_text.setPlainText("")
+        self.service_text.setPlainText("")
+        self.target_text.setPlainText("")
+
+        self.name_text.setEnabled(False)
+        self.service_text.setEnabled(False)
+        self.target_text.setEnabled(False)
+        self.protocol_comboBox.setEnabled(False)
+
+        self.save_button.setEnabled(False)
+        self.cancel_button.setEnabled(False)
+
+    def enable_controls(self):
+        self.name_text.setEnabled(True)
+        self.service_text.setEnabled(True)
+        self.target_text.setEnabled(True)
+        self.protocol_comboBox.setEnabled(True)
+
+        self.save_button.setEnabled(True)
+        self.cancel_button.setEnabled(True)
+
+    def add_service(self):
+        self.enable_controls()
+        self.add_button.setEnabled(False)
+
+    def cancel(self):
+        self.disable_controls()
+        self.add_button.setEnabled(True)
+
+    def register_service(self):
+        name = self.name_text.toPlainText()
+        service = self.service_text.toPlainText()
+        protocol = self.protocol_comboBox.currentText().lower()
+        target = self.target_text.toPlainText()
+
+        # todo: verificari
+        msg = QMessageBox()
+        msg.setStyleSheet("QLabel{min-width: 150px;}")
+        msg.setWindowTitle("Registering service...")
+        msg.show()
+
+        service_complete = "_" + service + "._" + protocol + ".local."
+        name_complete = name + "." + service_complete
+
+        # todo: atribuire adresa
+        address = "192.1.0.2"
+        port = 53
+        weight = 0
+        priority = 0
+        ttl = 7000
+
+        service_info = ServiceInfo(type_=service_complete, name=name_complete,
+                                   address=socket.inet_aton(address), port=port,
+                                   weight=weight, priority=priority, properties={}, server=target)
+
+        if self.zeroconfig is None:
+            self.zeroconfig = Zeroconfig()
+
+        self.zeroconfig.register_service(service_info, ttl=ttl)
+        self.responder_list.addItem("Name:  " + name_complete + "    Target:  " + target)
+        self.serv_dict[name_complete] = service_info
+
+        msg.setText("Registration done.")
+        msg.exec_()
+
+        self.cancel()
+
+    def unregister_service(self):
+        current_row = self.responder_list.currentRow()
+        # todo: verificari...
+        msg = QMessageBox()
+        msg.setStyleSheet("QLabel{min-width: 150px;}")
+        msg.setWindowTitle("Unregistering service...")
+        msg.show()
+
+        service = self.responder_list.currentItem().text()
+        name = service.split(" ")[2]
+        self.zeroconfig.unregister_service(self.serv_dict[name])
+
+        msg.setText("Unregistration done.")
+        msg.exec_()
+
+        self.responder_list.takeItem(current_row)
+
+    def show_all(self):
+        self.resolver_list.clear()
+
+        msg = QMessageBox()
+        msg.setStyleSheet("QLabel{min-width: 150px;}")
+        msg.setWindowTitle("Browsing for services...")
+        msg.show()
+
+        if self.zeroconfig is None:
+            self.zeroconfig = Zeroconfig()
+
+        service_types = ZeroconfigServiceTypes.find(zc=self.zeroconfig, timeout=0.5)
+
+        for type_ in service_types:
+            listener = Listener()
+            browser = Browser(self.zeroconfig, type_, listener)
+            time.sleep(3)
+            browser.cancel()
+
+            for service in listener.result.splitlines():
+                self.resolver_list.addItem(service)
+
+        msg.setText("Browsing done.")
+        msg.exec_()
+
+    def filter_by_service(self):
+        self.resolver_list.clear()
+
+        msg = QMessageBox()
+        msg.setStyleSheet("QLabel{min-width: 150px;}")
+        msg.setWindowTitle("Browsing for services...")
+        msg.show()
+
+        service = self.filter_text.toPlainText()
+
+        if self.zeroconfig is None:
+            self.zeroconfig = Zeroconfig()
+
+        service_complete = "_" + service + "._udp.local."
+        udp_listener = Listener()
+        udp_browser = Browser(self.zeroconfig, service_complete, udp_listener)
+        time.sleep(3)
+        udp_browser.cancel()
+
+        for item in udp_listener.result.splitlines():
+            self.resolver_list.addItem(item)
+
+        service_complete = "_" + service + "._tcp.local."
+        tcp_listener = Listener()
+        tcp_browser = Browser(self.zeroconfig, service_complete, tcp_listener)
+        time.sleep(3)
+        tcp_browser.cancel()
+
+        for item in tcp_listener.result.splitlines():
+            self.resolver_list.addItem(item)
+
+        msg.setText("Browsing done.")
+        msg.exec_()
+
+    def get_ip_address(self):
+        target = self.eqp_name_text.toPlainText()
+
+        if self.zeroconfig is None:
+            self.zeroconfig = Zeroconfig()
+
+        msg = QMessageBox()
+        msg.setStyleSheet("QLabel{min-width: 150px;}")
+        msg.setWindowTitle("Resolving Hostname...")
+        msg.show()
+        service_types = ZeroconfigServiceTypes.find(zc=self.zeroconfig, timeout=0.5)
+        for type_ in service_types:
+            listener = Listener()
+            browser = Browser(self.zeroconfig, type_, listener)
+            time.sleep(3)
+            browser.cancel()
+
+            for item in listener.result.splitlines():
+                eqp = '.local.'
+                ip_address = '0.0.0.0'
+                srv = ' '.join(item.split()).split(' ')
+                if len(srv) > 2:
+                    eqp = srv[3]
+                if target == eqp:
+                    if len(srv) > 2:
+                        ip_address = srv[5]
+                    self.ip_label.setText(ip_address)
+        msg.setText("IP Address found.")
+        msg.exec_()

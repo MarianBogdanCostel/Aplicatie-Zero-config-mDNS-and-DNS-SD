@@ -1,42 +1,42 @@
-from DNSclasses import *
 from functools import reduce
+from queryTypes import *
 
 
 class DNSCache:
     def __init__(self):
-        self.cache = {}
+        self.items = {}
 
-    def add(self, entry):
-        self.cache.setdefault(entry.key, []).append(entry)
+    def add_item(self, item):
+        self.items.setdefault(item.key, []).append(item)
 
-    def remove(self, entry):
+    def remove_item(self, item):
         try:
-            list__ = self.cache[entry.key]
-            list__.remove(entry)
-            if not list__:
-                del self.cache[entry.key]
+            list = self.items[item.key]
+            list.remove(item)
+            if not list:
+                del self.items[item.key]
         except (KeyError, ValueError):
             pass
 
-    def get(self, entry):
+    def get_item(self, item):
         try:
-            list__ = self.cache[entry.key]
-            return list__[list__.index(entry)]
+            list = self.items[item.key]
+            return list[list.index(item)]
         except (KeyError, ValueError):
             return None
 
-    def get_by_details(self, name, type_, class_):
-        entry = DNSEntry(name, type_, class_)
-        return self.get(entry)
+    def get_item_by_details(self, name, type_, class_):
+        item = DNSEntry(name, type_, class_)
+        return self.get_item(item)
 
-    def entries(self):
-        if not self.cache:
+    def get_items(self):
+        if not self.items:
             return []
         else:
-            return reduce(lambda x, y: x + y, self.cache.values())
+            return reduce(lambda x, y: x + y, self.items.values())
 
-    def entries_with_name(self, name):
+    def get_items_with_name(self, name):
         try:
-            return self.cache[name]
+            return self.items[name]
         except KeyError:
             return []
