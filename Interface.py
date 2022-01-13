@@ -244,5 +244,7 @@ class Interface(QMainWindow):
                         if len(srv) > 2:
                             ip_address = srv[5]
                         self.ip_label.setText(ip_address)
-            msg.setText("IP Address found.")
+                        msg.setText("IP Address found.")
+                    else:
+                        msg.setText("IP Address NOT found.")
             msg.exec_()
