@@ -1,3 +1,4 @@
+import random
 import socket
 
 from ServiceFinder import *
@@ -26,6 +27,7 @@ class Interface(QMainWindow):
 
         self.zeroconfig = None
         self.serv_dict = {}
+        self.ip_dict = {}
 
         self.disable_controls()
         self.add_button.clicked.connect(self.add_service)
@@ -72,7 +74,14 @@ class Interface(QMainWindow):
         protocol = self.protocol_comboBox.currentText().lower()
         target = self.target_text.toPlainText()
 
-        # todo: verificari
+        for c in ' ._':
+            name = name.replace(c, '')
+            service = service.replace(c, '')
+
+        target = target.replace(' ', '')
+        if not (target.endswith('.')):
+            target = target + '.'
+
         msg = QMessageBox()
         msg.setStyleSheet("QLabel{min-width: 150px;}")
         msg.setWindowTitle("Registering service...")
@@ -81,19 +90,22 @@ class Interface(QMainWindow):
         service_complete = "_" + service + "._" + protocol + ".local."
         name_complete = name + "." + service_complete
 
-        # todo: atribuire adresa
-        address = "192.1.0.2"
-        port = 53
-        weight = 0
-        priority = 0
-        ttl = 7000
+        if target in self.ip_dict.keys():
+            address = self.ip_dict[target]
+        else:
+            address = '192.168' + '.' + str(random.randint(1, 254)) + '.' + str(random.randint(1, 254))
 
-        service_info = ServiceInfo(service_complete, name_complete, socket.inet_aton(address), port, weight, priority, target)
+            while address in self.ip_dict.values():
+                address = '192.168' + '.' + str(random.randint(1, 254)) + '.' + str(random.randint(1, 254))
+
+            self.ip_dict[target] = address
+
+        service_info = ServiceInfo(service_complete, name_complete, socket.inet_aton(address), MDNS_PORT, 0, 0, target)
 
         if self.zeroconfig is None:
             self.zeroconfig = Zeroconfig()
 
-        self.zeroconfig.register_service(service_info, ttl)
+        self.zeroconfig.register_service(service_info, DNS_TTL)
         self.responder_list.addItem("Name:  " + name_complete + "    Target:  " + target)
         self.serv_dict[name_complete] = service_info
 
@@ -104,20 +116,27 @@ class Interface(QMainWindow):
 
     def unregister_service(self):
         current_row = self.responder_list.currentRow()
-        # todo: verificari...
-        msg = QMessageBox()
-        msg.setStyleSheet("QLabel{min-width: 150px;}")
-        msg.setWindowTitle("Unregistering service...")
-        msg.show()
 
-        service = self.responder_list.currentItem().text()
-        name = service.split(" ")[2]
-        self.zeroconfig.unregister_service(self.serv_dict[name])
+        if current_row == -1:
+            msg = QMessageBox()
+            msg.setStyleSheet("QLabel{min-width: 150px;}")
+            msg.setWindowTitle("Error")
+            msg.setText("Please select a service.")
+            msg.exec_()
+        else:
+            msg = QMessageBox()
+            msg.setStyleSheet("QLabel{min-width: 150px;}")
+            msg.setWindowTitle("Unregistering service...")
+            msg.show()
 
-        msg.setText("Unregistration done.")
-        msg.exec_()
+            service = self.responder_list.currentItem().text()
+            name = service.split(" ")[2]
+            self.zeroconfig.unregister_service(self.serv_dict[name])
 
-        self.responder_list.takeItem(current_row)
+            msg.setText("Unregistration done.")
+            msg.exec_()
+
+            self.responder_list.takeItem(current_row)
 
     def show_all(self):
         self.resolver_list.clear()
@@ -145,65 +164,85 @@ class Interface(QMainWindow):
         msg.exec_()
 
     def filter_by_service(self):
-        self.resolver_list.clear()
-
-        msg = QMessageBox()
-        msg.setStyleSheet("QLabel{min-width: 150px;}")
-        msg.setWindowTitle("Browsing for services...")
-        msg.show()
-
         service = self.filter_text.toPlainText()
 
-        if self.zeroconfig is None:
-            self.zeroconfig = Zeroconfig()
+        if service == '':
+            msg = QMessageBox()
+            msg.setStyleSheet("QLabel{min-width: 150px;}")
+            msg.setWindowTitle("Error")
+            msg.setText("Please specify a service.")
+            msg.exec_()
+        else:
+            for c in ' ._':
+                service = service.replace(c, '')
 
-        service_complete = "_" + service + "._udp.local."
-        udp_listener = Listener()
-        udp_browser = Browser(self.zeroconfig, service_complete, udp_listener)
-        time.sleep(3)
-        udp_browser.stop()
+            self.resolver_list.clear()
+            msg = QMessageBox()
+            msg.setStyleSheet("QLabel{min-width: 150px;}")
+            msg.setWindowTitle("Browsing for services...")
+            msg.show()
 
-        for item in udp_listener.result.splitlines():
-            self.resolver_list.addItem(item)
+            if self.zeroconfig is None:
+                self.zeroconfig = Zeroconfig()
 
-        service_complete = "_" + service + "._tcp.local."
-        tcp_listener = Listener()
-        tcp_browser = Browser(self.zeroconfig, service_complete, tcp_listener)
-        time.sleep(3)
-        tcp_browser.stop()
+            service_complete = "_" + service + "._udp.local."
+            udp_listener = Listener()
+            udp_browser = Browser(self.zeroconfig, service_complete, udp_listener)
+            time.sleep(3)
+            udp_browser.stop()
 
-        for item in tcp_listener.result.splitlines():
-            self.resolver_list.addItem(item)
+            for item in udp_listener.result.splitlines():
+                self.resolver_list.addItem(item)
 
-        msg.setText("Browsing done.")
-        msg.exec_()
+            service_complete = "_" + service + "._tcp.local."
+            tcp_listener = Listener()
+            tcp_browser = Browser(self.zeroconfig, service_complete, tcp_listener)
+            time.sleep(3)
+            tcp_browser.stop()
+
+            for item in tcp_listener.result.splitlines():
+                self.resolver_list.addItem(item)
+
+            msg.setText("Browsing done.")
+            msg.exec_()
 
     def get_ip_address(self):
         target = self.eqp_name_text.toPlainText()
 
-        if self.zeroconfig is None:
-            self.zeroconfig = Zeroconfig()
+        if target == '':
+            msg = QMessageBox()
+            msg.setStyleSheet("QLabel{min-width: 150px;}")
+            msg.setWindowTitle("Error")
+            msg.setText("Please specify a target.")
+            msg.exec_()
+        else:
+            target = target.replace(' ', '')
+            if not (target.endswith('.')):
+                target = target + '.'
 
-        msg = QMessageBox()
-        msg.setStyleSheet("QLabel{min-width: 150px;}")
-        msg.setWindowTitle("Resolving Hostname...")
-        msg.show()
-        services = ServiceFinder.find(self.zeroconfig, 0.5)
-        for service in services:
-            listener = Listener()
-            browser = Browser(self.zeroconfig, service, listener)
-            time.sleep(3)
-            browser.stop()
+            if self.zeroconfig is None:
+                self.zeroconfig = Zeroconfig()
 
-            for item in listener.result.splitlines():
-                eqp = '.local.'
-                ip_address = '0.0.0.0'
-                srv = ' '.join(item.split()).split(' ')
-                if len(srv) > 2:
-                    eqp = srv[3]
-                if target == eqp:
+            msg = QMessageBox()
+            msg.setStyleSheet("QLabel{min-width: 150px;}")
+            msg.setWindowTitle("Resolving Hostname...")
+            msg.show()
+            services = ServiceFinder.find(self.zeroconfig, 0.5)
+            for service in services:
+                listener = Listener()
+                browser = Browser(self.zeroconfig, service, listener)
+                time.sleep(3)
+                browser.stop()
+
+                for item in listener.result.splitlines():
+                    eqp = '.local.'
+                    ip_address = '0.0.0.0'
+                    srv = ' '.join(item.split()).split(' ')
                     if len(srv) > 2:
-                        ip_address = srv[5]
-                    self.ip_label.setText(ip_address)
-        msg.setText("IP Address found.")
-        msg.exec_()
+                        eqp = srv[3]
+                    if target == eqp:
+                        if len(srv) > 2:
+                            ip_address = srv[5]
+                        self.ip_label.setText(ip_address)
+            msg.setText("IP Address found.")
+            msg.exec_()
