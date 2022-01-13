@@ -88,10 +88,7 @@ class DNSQuery:
     def write_record(self, record, now):
         self.write_domain_name(record.name)
         self.write_short(record.type_)
-        if self.is_multicast:
-            self.write_short(record.clazz)
-        else:
-            self.write_short(record.clazz)
+        self.write_short(record.clazz)
         if now == 0:
             self.write_int(record.ttl)
         else:

@@ -84,25 +84,16 @@ class Zeroconfig:
             self.servicetypes[info.type_] += 1
         else:
             self.servicetypes[info.type_] = 1
-        now = get_current_time()
-        next_time = now
-        j = 0
-        while j < 3:
-            if now < next_time:
-                self.wait(next_time - now)
-                now = get_current_time()
-                continue
-            query = DNSQuery(FLAG_RESPONSE | FLAG_AA)
-            query.add_answer_at_time(DNSPointer(info.type_, TYPE_PTR, CLASS_IN, ttl, info.name), 0)
-            query.add_answer_at_time(DNSService(info.name, TYPE_SRV, CLASS_IN, ttl, info.priority,
-                                                info.weight, info.port, info.target), 0)
 
-            if info.address:
-                query.add_answer_at_time(
-                    DNSAddress(info.target, TYPE_A, CLASS_IN, ttl, info.address), 0)
-            self.send(query)
-            j += 1
-            next_time += 250
+        query = DNSQuery(FLAG_RESPONSE | FLAG_AA)
+        query.add_answer_at_time(DNSPointer(info.type_, TYPE_PTR, CLASS_IN, ttl, info.name), 0)
+        query.add_answer_at_time(DNSService(info.name, TYPE_SRV, CLASS_IN, ttl, info.priority,
+                                            info.weight, info.port, info.target), 0)
+
+        if info.address:
+            query.add_answer_at_time(
+                DNSAddress(info.target, TYPE_A, CLASS_IN, ttl, info.address), 0)
+        self.send(query)
 
     def unregister_service(self, info):
         try:
@@ -113,24 +104,14 @@ class Zeroconfig:
                 del self.servicetypes[info.type_]
         except Exception:
             pass
-        now = get_current_time()
-        next_time = now
-        j = 0
-        while j < 3:
-            if now < next_time:
-                self.wait(next_time - now)
-                now = get_current_time()
-                continue
-            query = DNSQuery(FLAG_RESPONSE | FLAG_AA)
-            query.add_answer_at_time(DNSPointer(info.type_, TYPE_PTR, CLASS_IN, 0, info.name), 0)
-            query.add_answer_at_time(DNSService(info.name, TYPE_SRV, CLASS_IN, 0, info.priority,
-                                                info.weight, info.port, info.target), 0)
-            if info.address:
-                query.add_answer_at_time(
-                    DNSAddress(info.target, TYPE_A, CLASS_IN, 0, info.address), 0)
+
+        query = DNSQuery(FLAG_RESPONSE | FLAG_AA)
+        query.add_answer_at_time(DNSPointer(info.type_, TYPE_PTR, CLASS_IN, 0, info.name), 0)
+        query.add_answer_at_time(DNSService(info.name, TYPE_SRV, CLASS_IN, 0, info.priority,
+                                            info.weight, info.port, info.target), 0)
+        if info.address:
+            query.add_answer_at_time(DNSAddress(info.target, TYPE_A, CLASS_IN, 0, info.address), 0)
             self.send(query)
-            j += 1
-            next_time += 150
 
     def update_record(self, now, record):
         for listener in self.listeners:
@@ -171,10 +152,6 @@ class Zeroconfig:
 
     def read_query(self, msg, address, port):
         query = None
-        if port != MDNS_PORT:
-            query = DNSQuery(FLAG_RESPONSE | FLAG_AA, False)
-            for question in msg.questions:
-                query.add_question(question)
 
         for question in msg.questions:
             if question.type_ == TYPE_PTR:
@@ -182,7 +159,8 @@ class Zeroconfig:
                     for service_type in self.servicetypes.keys():
                         if query is None:
                             query = DNSQuery(FLAG_RESPONSE | FLAG_AA)
-                        query.add_answer(msg, DNSPointer("_services._dns-sd._udp.local.", TYPE_PTR, CLASS_IN, DNS_TTL, service_type))
+                        query.add_answer(msg, DNSPointer("_services._dns-sd._udp.local.", TYPE_PTR, CLASS_IN, DNS_TTL,
+                                                         service_type))
 
                 for service in self.services.values():
                     if question.name == service.type_:
@@ -196,15 +174,18 @@ class Zeroconfig:
                     if question.type_ in (TYPE_A, TYPE_ANY):
                         for service in self.services.values():
                             if service.target == question.name.lower():
-                                query.add_answer(msg, DNSAddress(question.name, TYPE_A, CLASS_IN, DNS_TTL, service.address))
+                                query.add_answer(msg,
+                                                 DNSAddress(question.name, TYPE_A, CLASS_IN, DNS_TTL, service.address))
                     service = self.services.get(question.name.lower(), None)
                     if not service:
                         continue
 
                     if question.type_ in (TYPE_SRV, TYPE_ANY):
-                        query.add_answer(msg, DNSService(question.name, TYPE_SRV, CLASS_IN, DNS_TTL, service.priority, service.weight, service.port, service.server))
+                        query.add_answer(msg, DNSService(question.name, TYPE_SRV, CLASS_IN, DNS_TTL, service.priority,
+                                                         service.weight, service.port, service.server))
                     if question.type_ == TYPE_SRV:
-                        query.add_additional_answer(DNSAddress(service.server, TYPE_A, CLASS_IN, DNS_TTL, service.address))
+                        query.add_additional_answer(
+                            DNSAddress(service.server, TYPE_A, CLASS_IN, DNS_TTL, service.address))
 
                 except Exception:
                     pass
