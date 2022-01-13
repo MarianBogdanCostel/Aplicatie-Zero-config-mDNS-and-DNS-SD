@@ -1,5 +1,5 @@
 from functools import reduce
-from queryTypes import *
+from DNSClasses import *
 
 
 class DNSCache:
@@ -25,8 +25,8 @@ class DNSCache:
         except (KeyError, ValueError):
             return None
 
-    def get_item_by_details(self, name, type_, class_):
-        item = DNSEntry(name, type_, class_)
+    def get_item_by_details(self, name, type, clazz):
+        item = DNSEntry(name, type, clazz)
         return self.get_item(item)
 
     def get_items(self):
@@ -35,7 +35,7 @@ class DNSCache:
         else:
             return reduce(lambda x, y: x + y, self.items.values())
 
-    def get_items_with_name(self, name):
+    def get_item_with_name(self, name):
         try:
             return self.items[name]
         except KeyError:

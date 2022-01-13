@@ -1,13 +1,15 @@
 from six import indexbytes
-from queryTypes import *
+from DNSClasses import *
 
 
 class DNSResponse:
     def __init__(self, data):
-        self.offset = 0
         self.data = data
+
         self.questions = []
         self.answers = []
+
+        self.offset = 0
         self.id = 0
         self.flags = 0
         self.nr_questions = 0
@@ -19,9 +21,9 @@ class DNSResponse:
         self.read_questions()
         self.read_other_data()
 
-    def unpack(self, format_):
-        length = struct.calcsize(format_)
-        info = struct.unpack(format_, self.data[self.offset:self.offset + length])
+    def unpack(self, format):
+        length = struct.calcsize(format)
+        info = struct.unpack(format, self.data[self.offset:self.offset + length])
         self.offset += length
         return info
 
@@ -52,10 +54,10 @@ class DNSResponse:
         return self.read_string(length)
 
     def is_query(self):
-        return (self.flags & FLAGS_QR_MASK) == FLAGS_QR_QUERY
+        return (self.flags & 0x8000) == FLAG_QUERY
 
     def is_response(self):
-        return (self.flags & FLAGS_QR_MASK) == FLAGS_QR_RESPONSE
+        return (self.flags & 0x8000) == FLAG_RESPONSE
 
     def read_utf8(self, offset, length):
         return str(self.data[offset: offset + length], encoding='utf-8', errors='replace')
@@ -64,7 +66,6 @@ class DNSResponse:
         result = ''
         offset = self.offset
         next_off = -1
-        first = offset
         while True:
             length = indexbytes(self.data, offset)
             offset += 1
@@ -77,12 +78,7 @@ class DNSResponse:
             elif t == 0xC0:
                 if next_off < 0:
                     next_off = offset + 1
-                offset = ((length & 0x3F) << 8) | indexbytes(self.data, offset)  # Turn back to the domain name
-                if offset >= first:
-                    raise Exception("Bad domain name (circular) at %s!" % offset)
-                first = offset
-            else:
-                raise Exception("Bad domain name at %s" % offset)
+                offset = ((length & 0x3F) << 8) | indexbytes(self.data, offset)
         if next_off >= 0:
             self.offset = next_off
         else:
@@ -104,13 +100,10 @@ class DNSResponse:
             record = None
             if type_ == TYPE_A:
                 record = DNSAddress(domain, type_, class_, ttl, self.read_string(4))
-            elif type_ == TYPE_CNAME or type_ == TYPE_PTR:
+            elif type_ == TYPE_PTR:
                 record = DNSPointer(domain, type_, class_, ttl, self.read_domain_name())
-            elif type_ == TYPE_TXT:
-                record = DNSText(domain, type_, class_, ttl, self.read_string(length))
             elif type_ == TYPE_SRV:
-                record = DNSService(domain, type_, class_, ttl, self.read_unsigned_short()
-                                    , self.read_unsigned_short(), self.read_unsigned_short(), self.read_domain_name())
+                record = DNSService(domain, type_, class_, ttl, self.read_unsigned_short(), self.read_unsigned_short(), self.read_unsigned_short(), self.read_domain_name())
             elif type_ == TYPE_AAAA:
                 record = DNSAddress(domain, type_, class_, ttl, self.read_string(16))
             else:

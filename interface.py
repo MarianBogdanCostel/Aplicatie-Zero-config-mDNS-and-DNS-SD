@@ -1,4 +1,6 @@
-from ServiceTypes_find import *
+import socket
+
+from ServiceFinder import *
 from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUi
 
@@ -11,8 +13,10 @@ class Listener:
         self.result += "Name:  %s    " % (name,)
         service = zeroconfig.get_service_info(type, name)
         if service:
-            self.result += ("Target:  %s    " % service.server)
+            self.result += ("Target:  %s    " % service.target)
             self.result += ("IP:  %s\n" % (socket.inet_ntoa(service.address)))
+        else:
+            self.result += "\n"
 
 
 class Interface(QMainWindow):
@@ -84,14 +88,12 @@ class Interface(QMainWindow):
         priority = 0
         ttl = 7000
 
-        service_info = ServiceInfo(type_=service_complete, name=name_complete,
-                                   address=socket.inet_aton(address), port=port,
-                                   weight=weight, priority=priority, properties={}, server=target)
+        service_info = ServiceInfo(service_complete, name_complete, socket.inet_aton(address), port, weight, priority, target)
 
         if self.zeroconfig is None:
             self.zeroconfig = Zeroconfig()
 
-        self.zeroconfig.register_service(service_info, ttl=ttl)
+        self.zeroconfig.register_service(service_info, ttl)
         self.responder_list.addItem("Name:  " + name_complete + "    Target:  " + target)
         self.serv_dict[name_complete] = service_info
 
@@ -128,16 +130,16 @@ class Interface(QMainWindow):
         if self.zeroconfig is None:
             self.zeroconfig = Zeroconfig()
 
-        service_types = ZeroconfigServiceTypes.find(zc=self.zeroconfig, timeout=0.5)
+        services = ServiceFinder.find(self.zeroconfig, 0.5)
 
-        for type_ in service_types:
+        for service in services:
             listener = Listener()
-            browser = Browser(self.zeroconfig, type_, listener)
+            browser = Browser(self.zeroconfig, service, listener)
             time.sleep(3)
-            browser.cancel()
+            browser.stop()
 
-            for service in listener.result.splitlines():
-                self.resolver_list.addItem(service)
+            for item in listener.result.splitlines():
+                self.resolver_list.addItem(item)
 
         msg.setText("Browsing done.")
         msg.exec_()
@@ -159,7 +161,7 @@ class Interface(QMainWindow):
         udp_listener = Listener()
         udp_browser = Browser(self.zeroconfig, service_complete, udp_listener)
         time.sleep(3)
-        udp_browser.cancel()
+        udp_browser.stop()
 
         for item in udp_listener.result.splitlines():
             self.resolver_list.addItem(item)
@@ -168,7 +170,7 @@ class Interface(QMainWindow):
         tcp_listener = Listener()
         tcp_browser = Browser(self.zeroconfig, service_complete, tcp_listener)
         time.sleep(3)
-        tcp_browser.cancel()
+        tcp_browser.stop()
 
         for item in tcp_listener.result.splitlines():
             self.resolver_list.addItem(item)
@@ -186,12 +188,12 @@ class Interface(QMainWindow):
         msg.setStyleSheet("QLabel{min-width: 150px;}")
         msg.setWindowTitle("Resolving Hostname...")
         msg.show()
-        service_types = ZeroconfigServiceTypes.find(zc=self.zeroconfig, timeout=0.5)
-        for type_ in service_types:
+        services = ServiceFinder.find(self.zeroconfig, 0.5)
+        for service in services:
             listener = Listener()
-            browser = Browser(self.zeroconfig, type_, listener)
+            browser = Browser(self.zeroconfig, service, listener)
             time.sleep(3)
-            browser.cancel()
+            browser.stop()
 
             for item in listener.result.splitlines():
                 eqp = '.local.'
